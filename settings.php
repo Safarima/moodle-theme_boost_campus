@@ -514,6 +514,13 @@ if ($ADMIN->fulltree) {
     }
     $page->add($setting);
 
+    $name = 'theme_boost_campus/coursecategoryontop';
+    $title = 'Category on top';
+    $description ='Category of Kurs is located on top of nav';
+    $setting = new admin_setting_configcheckbox('theme_boost_campus/coursecategoryontop', 'Menüeintrag Kursbereich nach oben', 'Wenn Sie diese Einstellung setzen, wird der Menüeintrag des aktuellen Kursbereichs immer über dem aktuellen Kursknoten im linken Menü platziert, wenn Sie sich auf der Kursseite eines Kurses befinden', 'no', 'yes', 'no');
+    $setting->set_updatedcallback('theme_reset_all_caches');
+    $page->add($setting);
+
     // Set navdrawer to full width on small screens when opened.
     $name = 'theme_boost_campus/navdrawerfullwidth';
     $title = get_string('navdrawerfullwidthsetting', 'theme_boost_campus', null, true);

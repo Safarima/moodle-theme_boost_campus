@@ -21,7 +21,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
- defined('MOODLE_INTERNAL') || die();
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * Return the files from the loginbackgroundimage file area.
@@ -153,9 +153,9 @@ function theme_boost_campus_get_loginbackgroundimage_scss() {
         $count++;
         // Get url from file.
         $url = moodle_url::make_pluginfile_url($file->get_contextid(), $file->get_component(), $file->get_filearea(),
-                $file->get_itemid(), $file->get_filepath(), $file->get_filename());
+            $file->get_itemid(), $file->get_filepath(), $file->get_filename());
         // Add this url to the body class loginbackgroundimage[n] as a background image.
-        $scss .= '$loginbackgroundimage' . $count.': "' . $url . '";';
+        $scss .= '$loginbackgroundimage' . $count . ': "' . $url . '";';
     }
 
     return $scss;
@@ -226,7 +226,7 @@ function theme_boost_campus_get_imageareacontent() {
                 }
             }
             // Sort array alphabetically ascending to the key "filepath".
-            usort($imageareacache, function($a, $b) {
+            usort($imageareacache, function ($a, $b) {
                 return strcmp($a["filepath"], $b["filepath"]);
             });
             return $imageareacache;
@@ -236,6 +236,7 @@ function theme_boost_campus_get_imageareacontent() {
     }
 }
 
+
 /**
  * Returns a modified flat_navigation object.
  *
@@ -243,7 +244,7 @@ function theme_boost_campus_get_imageareacontent() {
  * @return flat_navigation.
  */
 function theme_boost_campus_process_flatnav(flat_navigation $flatnav) {
-    global $USER;
+    global $USER, $COURSE;
     // If the setting defaulthomepageontop is enabled.
     if (get_config('theme_boost_campus', 'defaulthomepageontop') == 'yes') {
         // Only proceed processing if we are in a course context.
@@ -284,6 +285,33 @@ function theme_boost_campus_process_flatnav(flat_navigation $flatnav) {
         $flatnavreturn = $flatnav;
     }
 
+    if (get_config('theme_boost_campus', 'coursecategoryontop') == 'yes') {
+        // Only proceed processing if we are in a course context.
+        if (($coursehomenode = $flatnav->find('coursehome', global_navigation::TYPE_CUSTOM)) != false) {
+            if (($categorynode = $flatnav->find('coursecategory', global_navigation::TYPE_CUSTOM)) != false) {
+                $categorynodechildrennodeskeys = $categorynode->get_children_key_list();
+
+
+                $flatnavreturn = theme_boost_campus_set_category_on_top($flatnav, 'coursecategory', $coursehomenode);
+
+                foreach ($categorynodechildrennodeskeys as $k) {
+                    $childnode = $categorynode->get($k);
+                    $categorynode->add_node($childnode);
+                }
+
+            } else {
+                $flatnavreturn = $flatnav;
+            }
+        } else { // Not in course context.
+            // Return the passed flat navigation without changes.
+            $flatnavreturn = $flatnav;
+        }
+
+    } else { // Defaulthomepageontop not enabled.
+        // Return the passed flat navigation without changes.
+        $flatnavreturn = $flatnav;
+    }
+
     return $flatnavreturn;
 }
 
@@ -319,6 +347,67 @@ function theme_boost_campus_set_node_on_top(flat_navigation $flatnav, $nodename,
 
 
 /**
+ * Modifies the flat_navigation to add the node on top.
+ *
+ * @param flat_navigation $flatnav The flat navigation object.
+ * @param string $nodename The name of the node that is to modify.
+ * @param navigation_node $beforenode The node before which the to be modified node shall be added.
+ * @return flat_navigation.
+ */
+function theme_boost_campus_set_category_on_top(flat_navigation $flatnav, $nodename, $beforenode) {
+    // Get the node for which the sorting shall be changed.
+    $pageflatnav = $flatnav->find($nodename, global_navigation::TYPE_CUSTOM);
+
+    // If user is logged in as a guest pageflatnav is false. Only proceed here if the result is true.
+    if (!empty($pageflatnav)) {
+        // Set the showdivider of the new top node to false that no empty nav-element will be created.
+        $pageflatnav->set_showdivider(false);
+        // Add the showdivider to the coursehome node as this is the next one and this will add a margin top to it.
+        $beforenode->set_showdivider(true);
+        // Remove the category node that it does not appear twice in the menu.
+        $flatnav->remove($nodename);
+
+
+        // Add the category node before the beforenode (always the coursehomenode).
+       $flatnav->add($pageflatnav, $beforenode->key);
+
+        $categorynodechildrennodeskeys = $pageflatnav->get_children_key_list();
+        // Remove every child of the categorynode from the flatnav and add it before the categorynode
+        foreach ($categorynodechildrennodeskeys as $k) {
+            $childnode = $pageflatnav->get($k);
+
+            $flatnav->remove($k);
+
+            $flatnav->add($childnode, $pageflatnav->key);
+            $childnode->hidden = true;
+            $childnode->isexpandable = false;
+            $childnode->set_indent = 0;
+
+        }
+        // Remove the category node that it does not appear twice in the menu.
+        $flatnav->remove($nodename);
+        // Add the category node before the first of its childnodes.
+        $flatnav->add($pageflatnav, $categorynodechildrennodeskeys[0]);
+
+
+        /**  $categorynodechildrennodeskeys = $pageflatnav->get_children_key_list();
+         * foreach($categorynodechildrennodeskeys as $k){
+         * $childnode = $pageflatnav->get($k);
+         * $flatnav->remove($k);
+         * $pageflatnav->add($childnode);
+         * $pageflatnav->set_parent($childnode);
+         * $childnode->hidden = true;
+         * $childnode->isexpandable = false;
+         * $childnode->set_indent = 0;
+         *
+         * }*/
+    }
+
+    // Return the modified changes.
+    return $flatnav;
+}
+
+/**
  * Provides the node for the in-course course or activity settings.
  *
  * @return navigation_node.
@@ -338,7 +427,7 @@ function theme_boost_campus_get_incourse_settings() {
                 // If the setting 'incoursesettingsswitchtoroleposition' is set either set to the option 'yes'
                 // or to the option 'both', then add these to the $node.
                 if (((get_config('theme_boost_campus', 'incoursesettingsswitchtoroleposition') == 'yes') ||
-                    (get_config('theme_boost_campus', 'incoursesettingsswitchtoroleposition') == 'both'))
+                        (get_config('theme_boost_campus', 'incoursesettingsswitchtoroleposition') == 'both'))
                     && !is_role_switched($COURSE->id)) {
                     // Build switch role link
                     // We could only access the existing menu item by creating the user menu and traversing it.
@@ -347,8 +436,8 @@ function theme_boost_campus_get_incourse_settings() {
                     if (is_array($roles) && (count($roles) > 0)) {
                         // Define the properties for a new tab.
                         $properties = array('text' => get_string('switchroleto', 'theme_boost_campus'),
-                                            'type' => navigation_node::TYPE_CONTAINER,
-                                            'key'  => 'switchroletotab');
+                            'type' => navigation_node::TYPE_CONTAINER,
+                            'key' => 'switchroletotab');
                         // Create the node.
                         $switchroletabnode = new navigation_node($properties);
                         // Add the tab to the course administration node.
@@ -356,12 +445,12 @@ function theme_boost_campus_get_incourse_settings() {
                         // Add the available roles as children nodes to the tab content.
                         foreach ($roles as $key => $role) {
                             $properties = array('action' => new moodle_url('/course/switchrole.php',
-                                array('id'         => $COURSE->id,
-                                      'switchrole' => $key,
-                                      'returnurl'  => $PAGE->url->out_as_local_url(false),
-                                      'sesskey'    => sesskey())),
-                                                'type'   => navigation_node::TYPE_CUSTOM,
-                                                'text'   => $role);
+                                array('id' => $COURSE->id,
+                                    'switchrole' => $key,
+                                    'returnurl' => $PAGE->url->out_as_local_url(false),
+                                    'sesskey' => sesskey())),
+                                'type' => navigation_node::TYPE_CUSTOM,
+                                'text' => $role);
                             $switchroletabnode->add_node(new navigation_node($properties));
                         }
                     }
