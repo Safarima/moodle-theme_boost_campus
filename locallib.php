@@ -235,7 +235,20 @@ function theme_boost_campus_get_imageareacontent() {
         }
     }
 }
+function add_category_to_breadcrumb($flatnav){
+    global $PAGE;
+    if (($categorynode = $flatnav->find('coursecategory', navigation_node::TYPE_CUSTOM)) != false) {
 
+        $items=$PAGE->navbar->get_items();
+        $items[]= new breadcrumb_navigation_node($categorynode);
+       // $PAGE->navbar->items = $items;
+       // var_dump($PAGE->navbar->items);
+    }
+    return $flatnav;
+
+
+
+}
 
 /**
  * Returns a modified flat_navigation object.
@@ -311,6 +324,7 @@ function theme_boost_campus_process_flatnav(flat_navigation $flatnav) {
         // Return the passed flat navigation without changes.
         $flatnavreturn = $flatnav;
     }
+   // $flatnavreturn = add_category_to_breadcrumb($flatnav);
 
     return $flatnavreturn;
 }

@@ -58,7 +58,67 @@ defined('MOODLE_INTERNAL') || die;
  * @category output
  */
 class core_renderer extends \core_renderer {
+    /**
+     * This renders the navbar.
+     * Uses bootstrap compatible html.
+     */
+   public function navbar() {
+    global $COURSE;
+        $value=$this->accessProtected($this->page->navbar, "items");
+       // $value=$this->page->navbar->get_items();
+      // var_dump($value);
 
+        if($value[1]->key == "mycourses"){
+
+            $node=array_pop($value);
+          // var_dump($node);
+           // $array = (array) $node;
+           // var_dump($array);
+           $first= array_slice($value, 0, 2);
+          // var_dump($first);
+           $second = array_slice($value, 2);
+           $first[2]=$node;
+         //  var_dump($first);
+           $value=array_merge($first, $second);
+
+
+           //array_splice($value, 2, 0,$array);
+          // var_dump($value[2]);
+            // var_dump($value);
+
+            $items=$this->editProtected($this->page->navbar,"items", $value);
+           // var_dump($value);
+        }
+        else{
+            array_pop($value);
+            $items=$this->editProtected($this->page->navbar,"items", $value);
+        }
+
+
+
+        //var_dump($value[1]->key);
+       // print_r($this->page->navbar);
+
+        return $this->render_from_template('core/navbar', $this->page->navbar);
+    }
+    function getProtectedValue($obj,$name) {
+        $array = (array)$obj;
+        $prefix = chr(0).'*'.chr(0);
+        return $array[$prefix.$name];
+    }
+    function accessProtected($obj, $prop) {
+        $reflection = new \ReflectionClass($obj);
+        $property = $reflection->getProperty($prop);
+        $property->setAccessible(true);
+        return $property->getValue($obj);
+    }
+    function editProtected($obj, $prop, $value) {
+        $reflection = new \ReflectionClass($obj);
+        $property = $reflection->getProperty($prop);
+        $property->setAccessible(true);
+        $property->setValue($obj, $value);
+        return $property->getValue($obj);
+    }
     /**
      * Override to display an edit button again by calling the parent function
      * in core/core_renderer because theme_boost's function returns an empty
